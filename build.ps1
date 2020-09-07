@@ -3,7 +3,8 @@ This script builds libiconv,libxml2 and libxslt
 #>
 Param(
     [switch]$x64,
-    [switch]$vs2008
+    [switch]$vs2008,
+    [switch]$vs2019
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,22 +18,41 @@ $vsver = If($vs2008) { "90" } Else { "140" }
 
 Set-Location $PSScriptRoot
 
-Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $vcvarsarch
+# The Pscx in PS Gallery can't support vs2019, but it will use the latest one if version is not given
+#   The related issue https://github.com/Pscx/Pscx/pull/61
+If($vs2019){ Import-VisualStudioVars -Architecture $vcvarsarch }
+Else { Import-VisualStudioVars -VisualStudioVersion $vsver -Architecture $vcvarsarch }
 
 if($vs2008) {
     Set-Location .\libiconv\MSVC9
     $vcarch = If($x64) { "x64" } Else {"Win32"}
     vcbuild libiconv_static\libiconv_static.vcproj "Release|$vcarch"
-} else {
+} elseif($vs2019) {
+    Set-Location .\libiconv\MSVC16
+    $vcarch = If($x64) { "x64" } Else {"Win32"}
+    msbuild libiconv.sln /p:Configuration=Release /p:Platform=$vcarch /t:libiconv_static
+}
+else {
     Set-Location .\libiconv\MSVC14
     msbuild libiconv.sln /p:Configuration=Release /t:libiconv_static
 }
-$iconvLib = Join-Path (pwd) libiconv_static$x64Dir\Release
-$iconvInc = Join-Path (pwd) ..\source\include
+if($vs2019) {
+    If($x64) {
+        $iconvLib = Join-Path (pwd) x64\lib
+    }
+    else {
+        $iconvLib = Join-Path (pwd) Win32\lib
+    }
+    $iconvInc = Join-Path (pwd) ..\source\include
+}
+else {
+    $iconvLib = Join-Path (pwd) libiconv_static$x64Dir\Release
+    $iconvInc = Join-Path (pwd) ..\source\include
+}
 Set-Location ..\..
 
 Set-Location .\zlib
-Start-Process -NoNewWindow -Wait nmake "-f win32/Makefile.msc zlib.lib"
+Start-Process -NoNewWindow -Wait nmake "-f win32/Makefile.msc zlib_a.lib"
 $zlibLib = (pwd)
 $zlibInc = (pwd)
 Set-Location ..

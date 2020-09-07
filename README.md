@@ -12,6 +12,14 @@ This repository contains everything required to compile libiconv, libxml2, and l
 Set-ExecutionPolicy remotesigned
 Find-Package pscx | ? ProviderName -eq PSModule | Install-Package -Force
 ```
+- If you are on Win 10 use PowerShell's PiwerShellGet feature. Install Pscx like so:
+```powershell
+Install-Module Pscx -Scope CurrentUser -AllowClobber
+```
+- For vitual studio 2019, please give the option '-vs2019 1',e.g.
+```powershell
+.\build.ps1 -x64 1 -vs2019 1
+```
 - Run `build.ps1`
 - Take binaries from `dist/`
 
